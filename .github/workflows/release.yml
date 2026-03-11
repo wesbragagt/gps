@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Run tests
+        run: go test -v -race ./...
+
+  release:
+    name: Build and Release
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build release binaries
+        run: make release
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+
+      - name: Create archives
+        run: make archives
+
+      - name: Generate checksums
+        run: |
+          cd bin
+          sha256sum *.tar.gz *.zip > checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/*.tar.gz,bin/*.zip,bin/checksums.txt
+          body: |
+            ## gps ${{ steps.get_version.outputs.VERSION }}
+            
+            ### Installation
+            
+            Download the appropriate binary for your platform from the assets below.
+            
+            **Linux/macOS:**
+            ```bash
+            # Download and extract
+            tar -xzf gps-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz
+            chmod +x gps
+            sudo mv gps /usr/local/bin/
+            ```
+            
+            **Windows:**
+            Extract `gps-windows-amd64.zip` and add `gps.exe` to your PATH.
+            
+            ### Changes
+            
+            See [CHANGELOG.md](https://github.com/wesbragagt/gps/blob/main/CHANGELOG.md) for details.
+            
+            ### Verification
+            
+            Verify downloads using `checksums.txt`:
+            ```bash
+            sha256sum -c checksums.txt --ignore-missing
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload binaries to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-binaries
+          path: bin/

@@ -1,0 +1,196 @@
+# GPS Integration for Windsurf
+
+GPS is a token-optimized CLI tool for project analysis, saving 50-70% tokens vs JSON output.
+
+## When to Use GPS
+
+Invoke GPS when:
+1. **Exploring unfamiliar codebase** - Get structure before diving in
+2. **Finding entry points** - Locate main files quickly
+3. **Module analysis** - Focus on specific directories
+4. **Architecture review** - Understand layer organization
+5. **Pre-refactoring** - Map dependencies before changes
+6. **Token budget constraints** - Maximize context efficiency
+
+## Essential Commands
+
+```bash
+# Quick project overview
+gps --summary
+
+# Find entry points (main files)
+gps --entry-points
+
+# Structure at 2 levels deep
+gps -L 2
+
+# Focus on specific directory
+gps --focus src/api
+
+# Token-efficient output (skip metadata)
+gps --no-meta -L 2
+
+# Combined: focused + efficient
+gps --focus internal/auth -L 2 --no-meta
+```
+
+## Output Formats
+
+| Format | Flag | Use Case |
+|--------|------|----------|
+| TOON | `-f toon` (default) | AI context, 50-70% token savings |
+| JSON | `-f json` | Scripting, CI/CD, jq processing |
+| Tree | `-f tree` | Human-readable, documentation |
+| Flat | `-f flat` | CSV-like, data analysis |
+
+**Format Selection:**
+- Default context → `gps` (TOON)
+- Programmatic access → `gps -f json`
+- Documentation → `gps -f tree`
+- Sorting/filtering → `gps -f flat`
+
+## Common Patterns
+
+### 1. Quick Project Understanding
+```bash
+gps --summary && gps --entry-points
+```
+
+### 2. Focused Module Analysis
+```bash
+gps --focus internal/service -L 3
+```
+
+### 3. Maximum Token Efficiency
+```bash
+gps -L 2 --no-meta
+```
+
+## Examples
+
+### Example 1: Project Overview
+```bash
+gps --summary
+```
+**Output:**
+```
+project[payment-service]{
+  type: go
+  files: 47
+  size: 312KB
+  entry: cmd/server/main.go
+  tests: 12 files
+  docs: README.md
+}
+```
+
+### Example 2: Find Entry Points
+```bash
+gps --entry-points
+```
+**Output:**
+```
+entry-points{
+  api: cmd/api/main.go
+  worker: cmd/worker/main.go
+  cli: cmd/cli/main.go
+}
+```
+
+### Example 3: Focused Analysis
+```bash
+gps --focus internal/auth -L 2
+```
+**Output:**
+```
+internal/auth[8]{
+  jwt[3]{
+    generator.go [4.2KB, 156L, go]
+    validator.go [3.8KB, 142L, go]
+  }
+  middleware[2]{
+    auth.go [3.2KB, 118L, go]
+  }
+  handlers[3]{
+    login.go [2.9KB, 108L, go]
+  }
+}
+```
+
+## Installation
+
+```bash
+# Linux/macOS
+curl -sL https://github.com/wesbragagt/gps/releases/latest/download/gps-$(uname -s)-$(uname -m) -o gps
+chmod +x gps
+sudo mv gps /usr/local/bin/
+
+# With Go
+go install github.com/wesbragagt/gps/cmd/gps@latest
+
+# Verify
+gps --version
+```
+
+## Advanced Usage
+
+### JSON Processing with jq
+```bash
+# Get entry points programmatically
+gps -f json | jq '.project.key_files.entry_points[]'
+
+# Count files by type
+gps -f json | jq '.project.stats.by_type'
+
+# Extract project type
+gps -f json | jq -r '.project.type'
+```
+
+### Custom Configuration
+Create `.gps.yaml` in project root:
+```yaml
+format: toon
+depth: -1
+exclude:
+  - node_modules
+  - dist
+  - "*.log"
+ext:
+  - .go
+  - .md
+  - .yaml
+exclude-ext:
+  - .log
+  - .tmp
+```
+
+### CI/CD Integration
+```bash
+# Validate structure in pipeline
+ENTRY_COUNT=$(gps -f json | jq '.project.key_files.entry_points | length')
+[ "$ENTRY_COUNT" -gt 0 ] || exit 1
+```
+
+## Integration Tips
+
+1. **Start minimal** - Use `gps --summary` first, expand with `--focus` as needed
+2. **Limit depth** - `-L 2` is often enough; add more only when necessary
+3. **Skip metadata** - `--no-meta` when you only need structure
+4. **Exclude noise** - `-I "node_modules,dist,build"` for cleaner output
+5. **Use focus** - `--focus dir` saves 70-90% tokens vs full scan
+
+## Token Efficiency Guide
+
+| Command | Token Savings |
+|---------|---------------|
+| `gps` vs `gps -f json` | 60-70% |
+| `gps -L 2` vs full depth | 40-70% |
+| `gps --no-meta` | 15-25% |
+| `gps --focus dir` | 70-90% |
+| `gps -d` (dirs only) | 50-80% |
+
+## Reference
+
+- Full docs: `.claude/skills/gps/reference.md`
+- Real examples: `.claude/skills/gps/examples.md`
+- GitHub: https://github.com/wesbragagt/gps

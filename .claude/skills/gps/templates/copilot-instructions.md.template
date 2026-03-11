@@ -1,0 +1,204 @@
+# GPS Integration for GitHub Copilot
+
+GPS (Go Project GPS) is a tree-like CLI tool optimized for AI agents. It provides **50-70% token reduction** compared to JSON output while delivering rich project metadata.
+
+## About GPS
+
+GPS maps project structures efficiently with:
+- Token-optimized TOON format (default)
+- File sizes, line counts, language detection
+- Auto-detected entry points, configs, tests
+- Multiple output formats (TOON, JSON, tree, flat)
+
+## When to Use GPS
+
+Use GPS when you need to:
+1. **Explore unfamiliar codebases** - Quick project overview without reading files
+2. **Find entry points** - Locate main files, server startup, CLI commands
+3. **Understand architecture** - Verify layered structure, module boundaries
+4. **Prepare code reviews** - Get context on changed areas efficiently
+5. **Plan refactoring** - Identify module dependencies and coupling
+6. **Generate documentation** - Create architecture docs from structure
+
+## Essential GPS Commands
+
+```bash
+# Quick project overview
+gps --summary
+
+# Find entry points (main files, servers)
+gps --entry-points
+
+# Standard depth-limited view
+gps -L 2
+
+# Focus on specific directory
+gps --focus src/api
+
+# Minimal output, maximum speed
+gps --no-meta -L 2
+
+# JSON output for scripting
+gps -f json
+```
+
+## Output Formats
+
+| Format | Command | Best For |
+|--------|---------|----------|
+| TOON | `gps` or `gps -f toon` | AI context (default, 50-70% token savings) |
+| JSON | `gps -f json` | Scripting, CI/CD, jq processing |
+| Tree | `gps -f tree` | Human reading, documentation |
+| Flat | `gps -f flat` | Data analysis, CSV-like output |
+
+## Common Workflows
+
+### 1. Project Exploration
+
+```bash
+gps --summary && gps -L 2
+```
+
+Start with summary, then get directory structure. Provides complete context in ~500 tokens.
+
+### 2. Feature Development
+
+```bash
+gps --focus internal/user -L 3
+```
+
+Focus on relevant module. Add `--no-meta` for structure-only view.
+
+### 3. Code Review Preparation
+
+```bash
+gps --focus internal/api/handlers -L 2 --no-meta
+```
+
+Get context on changed area without metadata overhead.
+
+## Examples
+
+### Example 1: Quick Overview
+
+```bash
+$ gps --summary
+```
+```
+project[payment-service]{
+  type: go
+  files: 47
+  size: 312KB
+  entry: cmd/server/main.go
+  tests: 12 files
+  docs: README.md
+}
+```
+
+### Example 2: Entry Point Discovery
+
+```bash
+$ gps --entry-points
+```
+```
+entry-points{
+  api-server: cmd/api/main.go
+  worker: cmd/worker/main.go
+  cli: cmd/cli/main.go
+}
+```
+
+### Example 3: Focused Module Analysis
+
+```bash
+$ gps --focus internal/auth -L 2
+```
+```
+internal/auth[12]{
+  jwt[3]{
+    generator.go [4.2KB, 156L, go]
+    validator.go [3.8KB, 142L, go]
+  }
+  oauth[4]{
+    google.go [5.1KB, 189L, go]
+    github.go [4.8KB, 178L, go]
+  }
+  middleware[2]{
+    require_auth.go [3.2KB, 118L, go]
+  }
+}
+```
+
+## Copilot Chat Integration
+
+Use these prompts with Copilot Chat after running GPS:
+
+```
+# After: gps --summary
+"Based on this project summary, explain the architecture and suggest where to start exploring."
+
+# After: gps --entry-points
+"What are the deployable services in this monorepo?"
+
+# After: gps --focus internal/api -L 2
+"Review the API layer structure and identify any potential improvements."
+```
+
+## Installation
+
+```bash
+# Linux/macOS (binary)
+curl -sL https://github.com/wesbragagt/gps/releases/latest/download/gps-$(uname -s)-$(uname -m) -o gps
+chmod +x gps
+sudo mv gps /usr/local/bin/
+
+# Go install
+go install github.com/wesbragagt/gps/cmd/gps@latest
+
+# Verify
+gps --version
+```
+
+## Advanced Usage with jq
+
+```bash
+# Get entry points as JSON array
+gps -f json | jq '.project.key_files.entry_points[]'
+
+# Count files by type
+gps -f json | jq '.project.stats.by_type'
+
+# Get project type
+gps -f json | jq -r '.project.type'
+
+# List all test files
+gps -f json | jq '.project.key_files.tests[]'
+
+# Check if entry points exist (for CI)
+gps -f json | jq '.project.key_files.entry_points | length'
+```
+
+## Tips for Copilot
+
+1. **Start minimal, expand as needed** - Use `--summary` first, then `-L 2`, then focus deeper
+2. **Use --no-meta for structure-only** - When file sizes/lines aren't relevant
+3. **Combine flags for efficiency** - `gps -L 2 -d --no-meta` for ultra-minimal directory tree
+4. **Exclude noise** - `gps -I "node_modules,dist,build"` for cleaner output
+5. **Use --focus for large projects** - Reduces tokens by 70-90% when analyzing specific areas
+
+## Quick Reference
+
+```bash
+gps                    # Default TOON output
+gps -L 2               # 2 levels deep
+gps --summary          # Project overview only
+gps --entry-points     # Find entry points
+gps --focus src/       # Focus on directory
+gps --no-meta          # Skip metadata
+gps -f json            # JSON output
+gps -I "node_modules"  # Exclude patterns
+gps -P "*.go"          # Include only Go files
+gps -e go,md,yaml      # Include extensions
+gps --exclude-ext log,tmp  # Exclude extensions
+gps --tokens           # Show token count
+```

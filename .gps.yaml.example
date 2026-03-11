@@ -1,0 +1,45 @@
+# gps configuration file
+# Copy this file to .gps.yaml in your project root or home directory
+
+# Output format: toon, json, tree, flat
+format: toon
+
+# Include file metadata (size, lines, type)
+meta: true
+
+# Include project detection info
+project-info: true
+
+# Max depth of traversal (-1 for unlimited)
+depth: -1
+
+# Include hidden files
+all: false
+
+# Directories only
+dirs-only: false
+
+# Intelligent traversal based on project type
+smart-traverse: true
+
+# Exclude patterns (glob patterns supported)
+exclude:
+  - node_modules
+  - vendor
+  - "*.log"
+  - ".git"
+  - dist
+  - build
+
+# Include only files matching these patterns
+# Empty means include all (respecting excludes)
+pattern: []
+
+# Focus on specific subdirectory (relative to target path)
+focus: ""
+
+# High-level project overview only
+summary: false
+
+# Show only entry points
+entry-points: false

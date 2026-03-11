@@ -1,0 +1,172 @@
+# GPS Integration for Cursor AI
+
+GPS is a token-optimized project mapping tool. Use it before reading files to understand project structure efficiently.
+
+## What is GPS?
+
+A tree-like CLI tool optimized for AI agents. **50-70% token reduction** vs JSON/tree output.
+
+**Key Benefits:**
+- Token-efficient TOON format (default)
+- Auto-detects entry points, configs, tests
+- Rich metadata (sizes, line counts, languages)
+- Respects gitignore
+
+## When to Use GPS
+
+| Task | Command |
+|------|---------|
+| First time exploring codebase | `gps --summary` |
+| Finding where app starts | `gps --entry-points` |
+| Understanding module structure | `gps -L 2` |
+| Focusing on specific area | `gps --focus src/api` |
+| Quick file overview | `gps --no-meta` |
+
+## Essential Commands
+
+```bash
+# Quick project overview (minimal tokens)
+gps --summary
+
+# Find main entry points
+gps --entry-points
+
+# Structure 2 levels deep
+gps -L 2
+
+# Focus on specific directory
+gps --focus src/api
+
+# Directories only, no metadata
+gps -d --no-meta
+
+# Exclude patterns
+gps -I "node_modules,dist,vendor"
+
+# Include only certain files
+gps -P "*.go,*.ts"
+
+# Include only specific extensions
+gps -e go,md,yaml
+
+# Exclude specific extensions
+gps --exclude-ext log,tmp,bak
+```
+
+## Output Formats
+
+| Format | Flag | Use Case |
+|--------|------|----------|
+| TOON | -f toon (default) | AI context, token-efficient |
+| JSON | -f json | Scripting, jq processing |
+| Tree | -f tree | Human-readable |
+| Flat | -f flat | CSV-like, data analysis |
+
+## Common Patterns
+
+### Pattern 1: New Project Exploration
+```bash
+gps --summary && gps --entry-points
+```
+Gets project type, file count, and where to start.
+
+### Pattern 2: Module Deep Dive
+```bash
+gps --focus internal/service -L 3
+```
+Analyze specific module with full context.
+
+### Pattern 3: Token-Efficient Overview
+```bash
+gps -L 2 --no-meta
+```
+Structure only, minimal tokens for large projects.
+
+## Integration Tips
+
+1. **Always start with GPS** before reading files - saves context
+2. **Use --focus** to limit scope when working on specific areas
+3. **Combine flags**: `gps -L 2 -I "node_modules" --no-meta` for maximum efficiency
+4. **Use --entry-points** to find where to start reading code
+5. **Prefer TOON format** - it is the default for a reason
+
+## Installation
+
+```bash
+# Linux/macOS (binary)
+curl -sL https://github.com/wesbragagt/gps/releases/latest/download/gps-$(uname -s)-$(uname -m) -o gps
+chmod +x gps
+sudo mv gps /usr/local/bin/
+
+# With Go
+go install github.com/wesbragagt/gps/cmd/gps@latest
+
+# Verify
+gps --version
+```
+
+## Examples
+
+### Example 1: Understanding a Go Service
+
+**Command:**
+```bash
+gps --summary
+```
+
+**Output:**
+```
+project[payment-service]{
+  type: go
+  files: 47
+  size: 312KB
+  lines: 8920
+  entry: cmd/server/main.go
+  tests: 12 files
+  docs: README.md
+}
+```
+
+### Example 2: Finding Entry Points
+
+**Command:**
+```bash
+gps --entry-points
+```
+
+**Output:**
+```
+entry-points{
+  api: cmd/api/main.go
+  worker: cmd/worker/main.go
+  cli: cmd/cli/main.go
+}
+```
+
+### Example 3: Module Structure
+
+**Command:**
+```bash
+gps --focus internal/auth -L 2
+```
+
+**Output:**
+```
+internal/auth[12]{
+  jwt[3]{
+    generator.go [4.2KB, 156L, go]
+    validator.go [3.8KB, 142L, go]
+  }
+  oauth[4]{
+    google.go [5.1KB, 189L, go]
+    github.go [4.8KB, 178L, go]
+  }
+  middleware[2]{
+    require_auth.go [3.2KB, 118L, go]
+  }
+}
+```
+
+---
+
+**Tip:** Run `gps` first, then read only the files you need. This preserves context for actual coding tasks.

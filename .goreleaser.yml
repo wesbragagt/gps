@@ -1,0 +1,88 @@
+# GoReleaser configuration
+# Usage: goreleaser release --clean
+# Requires GITHUB_TOKEN environment variable
+
+project_name: gps
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: gps
+    main: ./cmd/gps
+    binary: gps
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -X github.com/wesbragagt/gps/internal/version.Version={{.Version}}
+      - -X github.com/wesbragagt/gps/internal/version.GitCommit={{.ShortCommit}}
+      - -X github.com/wesbragagt/gps/internal/version.BuildDate={{.Date}}
+      - -s -w
+
+archives:
+  - id: default
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: wesbragagt
+    name: gps
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## gps {{ .Tag }}
+    
+    ### Installation
+    
+    Download the appropriate binary for your platform from the assets below.
+  footer: |
+    ### Verification
+    
+    Verify downloads using checksums:
+    ```bash
+    sha256sum -c checksums.txt --ignore-missing
+    ```
+    
+    **Full Changelog**: https://github.com/wesbragagt/gps/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+# Homebrew tap (optional - uncomment when ready)
+# brews:
+#   - name: gps
+#     repository:
+#       owner: wesbragagt
+#       name: homebrew-tap
+#     homepage: "https://github.com/wesbragagt/gps"
+#     description: "CLI tool for AI agents to map and traverse projects efficiently"
+#     license: "MIT"
