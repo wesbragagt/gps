@@ -39,3 +39,4 @@ Thumbs.db
 
 # PRD and planning documents
 /prd/
+.agent/
