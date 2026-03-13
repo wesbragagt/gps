@@ -4,13 +4,17 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/wesbragagt/gps)](https://goreportcard.com/report/github.com/wesbragagt/gps)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A tree-like CLI tool optimized for AI agents to map and traverse projects efficiently.
+## TL;DR
 
-**If you know how to use `tree`, you already know how to use `gps`.**
+**gps** maps your project structure with metadata optimized for AI agents.
+
+```bash
+gps              # That's it. See your project structure.
+```
 
 ## Why gps?
 
-When AI agents analyze codebases, they need efficient project overviews. Traditional tools like `tree` or `find` produce verbose output. JSON is structured but token-heavy. **gps** solves this with:
+When AI agents analyze codebases, they need efficient project overviews. **gps** provides:
 
 - **Token-efficient output** - 50-70% reduction compared to JSON
 - **Rich metadata** - File sizes, line counts, language detection
@@ -20,492 +24,275 @@ When AI agents analyze codebases, they need efficient project overviews. Traditi
 
 ## Installation
 
-### From Binary
-
-Download the latest release for your platform from the [releases page](https://github.com/wesbragagt/gps/releases).
-
-```bash
-# Linux/macOS
-curl -sL https://github.com/wesbragagt/gps/releases/latest/download/gps-$(uname -s)-$(uname -m) -o gps
-chmod +x gps
-sudo mv gps /usr/local/bin/
-```
-
-### From Source
-
-```bash
-git clone https://github.com/wesbragagt/gps.git
-cd gps
-go build ./cmd/gps
-./gps --help
-```
-
-### With Go
-
 ```bash
 go install github.com/wesbragagt/gps/cmd/gps@latest
+# Or download from https://github.com/wesbragagt/gps/releases
 ```
 
 ## Quick Start
 
 ```bash
-# Map current directory (TOON format by default)
-gps
+gps              # See your project structure
+gps --summary    # Quick overview
+gps -L 2         # Limit depth (like tree)
+gps -f json      # JSON output
+```
 
-# Map a specific project
-gps /path/to/project
+Output example:
 
-# Limit depth (like tree -L)
-gps -L 2
+```
+project[gps]{
+  type: go
+  files: 47
+  size: 284KB
+  lines: 6231
+}
+root[47]{
+  cmd[1]{
+    gps[1]{
+      main.go [1.8KB, 48L, go]
+    }
+  }
+  internal[28]{
+    scanner[8]{
+      scanner.go [12KB, 356L, go]
+      filter.go [4.2KB, 128L, go]
+    }
+  }
+  go.mod [512B, 15L, go]
+}
+keyfiles{
+  entry: cmd/gps/main.go
+  config: go.mod
+  tests: 12 files
+}
+```
 
-# JSON output for structured processing
-gps -f json
+## For AI Agents
 
-# Just the project summary
-gps --summary
+gps is optimized for LLM token efficiency.
+
+### Token Budget Guide
+
+| Context Window | Recommended Command |
+|----------------|---------------------|
+| 4k tokens | `gps -L 2 --no-meta` |
+| 8k tokens | `gps -L 3` |
+| 16k+ tokens | `gps` (full output) |
+| Unlimited | `gps -f json` (structured data) |
+
+### Recommended Invocations
+
+```bash
+# Quick context (for any code task)
+gps --summary && gps --entry-points
+
+# Structure overview (for refactoring/navigation)
+gps -L 3 -f toon
+
+# Full analysis (for comprehensive tasks)
+gps -f json | jq '.project.key_files'
+
+# Minimal context (token-constrained)
+gps -L 2 --no-meta --no-project-info
+```
+
+### Format Selection
+
+| Format | Tokens | Best For |
+|--------|--------|----------|
+| `toon` | Baseline | Default, human + AI readable |
+| `flat` | -72% | Max token savings |
+| `json` | +385% | Structured processing |
+| `tree` | +19% | Human presentations |
+
+### Token Counting
+
+```bash
+gps --tokens    # Show token count
+gps --compare   # Compare all formats
+```
+
+Modes: `--tokenizer approx` (fast) or `--tokenizer tiktoken` (accurate).
+
+### System Prompt Snippet
+
+```markdown
+## Project Navigation
+Use `gps` to understand project structure:
+- `gps --summary` for quick overview
+- `gps --entry-points` to find main files
+- `gps -L 2 --no-meta` for token-efficient structure
 ```
 
 ## Usage
 
 ### Tree-Compatible Flags
 
-If you're familiar with `tree`, these flags work the same way:
-
 ```bash
-gps -L 2                  # Limit depth to 2 levels
-gps -d                    # Directories only (no files)
-gps -a                    # Include hidden files/directories
+gps -L 2                  # Limit depth
+gps -d                    # Directories only
+gps -a                    # Include hidden files
 gps -I "node_modules"     # Exclude pattern
-gps -I "node_modules,dist,*.log"  # Multiple exclude patterns
-gps -P "*.go"             # Include only Go files
-gps -P "*.go,*.md"        # Include only Go and Markdown files
-gps -e go,md              # Include only .go and .md extensions
-gps -e ".go,.ts"          # Leading dot optional
-gps --exclude-ext log,tmp # Exclude .log and .tmp extensions
+gps -P "*.go"             # Include only .go files
+gps -e go,md              # Filter by extension
 ```
 
 ### AI-Optimized Flags
 
-Flags designed for AI agent workflows:
-
 ```bash
-gps -f toon               # Token-optimized output (default)
-gps -f json               # Structured JSON output
-gps -f tree               # Traditional tree view with colors
-gps -f flat               # CSV-like flat format
-
-gps --summary             # High-level project overview only
-gps --entry-points        # Show only detected entry points
-gps --focus src/          # Focus on a specific subdirectory
-
-gps --no-meta             # Skip metadata (faster, smaller output)
-gps --no-project-info     # Skip project detection info
-
-# Token counting (NEW!)
-gps --tokens              # Show token count in output
-gps -t                    # Short form
-gps --compare             # Compare token counts across all formats
-gps --tokenizer tiktoken  # Use tiktoken (GPT tokenizer)
+gps -f toon               # Token-optimized (default)
+gps -f json               # Structured JSON
+gps -f tree               # Traditional tree view
+gps -f flat               # CSV-like format
+gps --summary             # Project overview only
+gps --entry-points        # Show entry points
+gps --focus src/          # Focus on subdirectory
+gps --no-meta             # Skip metadata
 ```
-
-### Token Counting
-
-Understand token usage for AI agents:
-
-```bash
-# Show token count with output
-gps --tokens
-
-# Compare all formats
-gps --compare
-
-# Example output:
-# Format          Tokens  Bytes   vs TOON
-# -------         ------  -----   -------
-# TOON              538    2149   baseline
-# JSON             2608   10411   +385%
-# JSON (compact)   1413    5645   +163%
-# Tree              642    2571   +19%
-# Flat              150     612   -72%
-```
-
-**Token counting modes:**
-- `--tokenizer approx` (default): Fast, 4 chars ≈ 1 token
-- `--tokenizer tiktoken`: Accurate GPT tokenizer (requires tiktoken-go)
 
 ## Output Formats
 
-### TOON (Token-Optimized Object Notation) - Default
-
-Compact, human-readable format optimized for LLM token efficiency:
+### Quick Decision
 
 ```
-project[myapp]{
-  type: go
-  files: 23
-  size: 156KB
-  lines: 3420
-}
-root[31]{
-  cmd[3]{
-    myapp[1]{
-      main.go [3.2KB, 89L, go]
-    }
-  }
-  internal[18]{
-    scanner[5]{
-      scanner.go [8.2KB, 245L, go]
-      filter.go [2.1KB, 67L, go]
-    }
-  }
-  go.mod [512B, 15L, go]
-  README.md [4.5KB, 142L, md]
-}
-keyfiles{
-  entry: cmd/myapp/main.go
-  config: go.mod
-  tests: 5 files
-  docs: README.md
-}
+Need max token savings? → flat (-72%)
+Need structured data?   → json (+385%)
+Human presentation?     → tree (+19%)
+Default/unsure?         → toon (baseline)
 ```
 
-### JSON
+### Comparison
 
-Full structured output for programmatic processing:
+| Format | Tokens | Use Case | Pros |
+|--------|--------|----------|------|
+| **toon** | 100% | Default, AI agents | Human + AI readable, compact |
+| **flat** | 28% | Token-critical | Smallest output, CSV-like |
+| **json** | 485% | Programmatic | Fully structured, queryable |
+| **tree** | 119% | Presentations | Familiar format, colors |
 
-```bash
-gps -f json
+### Examples
+
+**TOON (default) - 538 tokens:**
+```
+project[myapp]{ type: go, files: 23 }
+root[23]{ cmd[1]{ main.go [3KB, 89L, go] } }
 ```
 
+**Flat - 150 tokens (-72%):**
+```
+path,size,lines,type
+cmd/main.go,3072,89,go
+go.mod,512,15,go
+```
+
+**JSON - 2608 tokens (+385%):**
 ```json
-{
-  "project": {
-    "name": "myapp",
-    "type": "go",
-    "root": "/home/user/myapp",
-    "stats": {
-      "file_count": 23,
-      "total_size": 159744,
-      "total_lines": 3420,
-      "by_type": {
-        "go": 18,
-        "md": 3,
-        "yaml": 2
-      }
-    },
-    "key_files": {
-      "entry_points": ["cmd/myapp/main.go"],
-      "configs": ["go.mod", "go.sum"],
-      "tests": ["scanner_test.go", "formatter_test.go"],
-      "docs": ["README.md"]
-    },
-    "tree": { ... }
-  }
-}
+{"project":{"name":"myapp","tree":{"cmd":{"main.go":{"size":3072}}}}}
 ```
 
-### Tree
-
-Traditional tree view with syntax highlighting:
-
-```bash
-gps -f tree
-```
-
+**Tree - 642 tokens (+19%):**
 ```
 myapp/
-├── cmd/
-│   └── myapp/
-│       └── main.go [3.2KB, 89L]
-├── internal/
-│   ├── scanner/
-│   │   ├── scanner.go [8.2KB, 245L]
-│   │   └── filter.go [2.1KB, 67L]
-│   └── formatter/
-│       └── toon.go [4.1KB, 128L]
-├── go.mod [512B, 15L]
-└── README.md [4.5KB, 142L]
-
-23 files, 156KB, 3420 lines
-```
-
-### Flat
-
-CSV-like format for easy parsing and analysis:
-
-```bash
-gps -f flat
-```
-
-```
-path,size,lines,type,importance
-cmd/myapp/main.go,3276,89,go,100
-go.mod,512,15,go,90
-internal/scanner/scanner.go,8396,245,go,80
-README.md,4608,142,md,40
+├── cmd/main.go [3KB, 89L]
+└── go.mod [512B, 15L]
 ```
 
 ## Special Modes
 
-### Summary Mode
+```bash
+gps --summary           # Project overview
+gps --entry-points      # Find entry points
+gps --focus src/api     # Analyze subdirectory
+```
 
-Get a quick project overview:
+## Common Patterns
+
+### Understanding a New Codebase
 
 ```bash
-gps --summary
+gps --summary           # Quick overview
+gps --entry-points      # Find where to start
+gps -L 3                # See structure
 ```
 
-```
-project[myapp]{
-  type: go
-  files: 23
-  size: 156KB
-  entry: cmd/myapp/main.go
-  tests: 5 files
-  docs: README.md
-}
-```
-
-### Entry Points Mode
-
-Find entry points quickly:
+### Preparing Context for AI
 
 ```bash
-gps --entry-points
+gps -L 2 --no-meta      # Minimal (4k budget)
+gps -L 3 -f toon        # Standard (8k budget)
+gps -f json             # Full (16k+ budget)
 ```
 
-```
-entry-points{
-  main: cmd/myapp/main.go
-}
-```
-
-### Focus Mode
-
-Analyze a specific subdirectory:
+### Analyzing Specific Areas
 
 ```bash
-gps --focus internal/scanner
+gps --focus src/api -L 3    # Focus on subdirectory
+gps -e go                   # Only Go files
+gps -I "generated,*.pb.go"  # Exclude patterns
+```
+
+### CI/CD Integration
+
+```bash
+gps --summary > project-info.txt
+gps -f json | jq '.project.stats.file_count'
+```
+
+### Documentation
+
+```bash
+gps -f tree > STRUCTURE.md
+gps -f flat > files.csv
 ```
 
 ## Configuration
 
-Create a `.gps.yaml` file in your project or home directory:
-
 ```yaml
-# Output format: toon, json, tree, flat
+# .gps.yaml
 format: toon
-
-# Max depth (-1 for unlimited)
 depth: -1
-
-# Include hidden files
-all: false
-
-# Include metadata
-meta: true
-
-# Default exclude patterns
 exclude:
   - node_modules
-  - vendor
   - dist
-  - build
   - "*.log"
-  - "*.tmp"
-
-# Include only specific extensions
-ext:
-  - .go
-  - .md
-  - .yaml
-
-# Exclude specific extensions
-exclude-ext:
-  - .log
-  - .tmp
-  - .bak
 ```
 
 ## Project Detection
 
-gps automatically detects project types and key files:
-
-| Language  | Config Files                    | Entry Points                    |
-|-----------|--------------------------------|---------------------------------|
-| Go        | go.mod, go.sum                 | main.go, cmd/*/main.go          |
-| Node.js   | package.json                   | index.js, server.js, app.js     |
-| Python    | requirements.txt, pyproject.toml | __main__.py, main.py, app.py  |
-| Rust      | Cargo.toml                     | src/main.rs                     |
-| Java      | pom.xml, build.gradle          | Main.java, Application.java     |
-
-## Use Cases for AI Agents
-
-### Quick Project Overview
-
-```bash
-gps --summary
-```
-Perfect for understanding a codebase in one command.
-
-### Find Entry Points
-
-```bash
-gps --entry-points
-```
-Quickly identify where to start reading code.
-
-### Analyze Specific Areas
-
-```bash
-gps --focus src/api -L 2
-```
-Focus analysis on specific subdirectories.
-
-### Token-Efficient Context
-
-```bash
-gps -f toon -L 3 --no-meta
-```
-Get structure without metadata for maximum token savings.
-
-### Structured Processing
-
-```bash
-gps -f json | jq '.project.key_files.entry_points'
-```
-Parse output programmatically with JSON.
+| Language  | Config Files         | Entry Points              |
+|-----------|---------------------|---------------------------|
+| Go        | go.mod, go.sum      | main.go, cmd/*/main.go    |
+| Node.js   | package.json        | index.js, server.js       |
+| Python    | requirements.txt    | __main__.py, main.py      |
+| Rust      | Cargo.toml          | src/main.rs               |
+| Java      | pom.xml             | Main.java                 |
 
 ## Comparison with tree
 
-| Feature                  | tree        | gps           |
-|--------------------------|-------------|---------------|
-| Basic directory listing  | ✅          | ✅            |
-| Depth limit (-L)         | ✅          | ✅            |
-| Directories only (-d)    | ✅          | ✅            |
-| Include hidden (-a)      | ✅          | ✅            |
-| Exclude patterns (-I)    | ✅          | ✅            |
-| Include patterns (-P)    | ✅          | ✅            |
-| Extension filtering      | ❌          | ✅            |
-| File metadata            | ❌          | ✅            |
-| Line counts              | ❌          | ✅            |
-| Language detection       | ❌          | ✅            |
-| Project type detection   | ❌          | ✅            |
-| Entry point detection    | ❌          | ✅            |
-| gitignore support        | ❌          | ✅            |
-| Multiple output formats  | ❌          | ✅            |
-| Token-optimized output   | ❌          | ✅            |
-| Config file support      | ❌          | ✅            |
-
-## Development
-
-### Prerequisites
-
-- Go 1.23 or later
-- Make (optional, for build commands)
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/wesbragagt/gps.git
-cd gps
-
-# Build using Make
-make build        # Build for current platform
-make release      # Build for all platforms
-
-# Or build directly with Go
-go build ./cmd/gps
-```
-
-### Make Targets
-
-| Target | Description |
-|--------|-------------|
-| `make build` | Build binary for current platform |
-| `make test` | Run tests with race detection |
-| `make coverage` | Generate HTML coverage report |
-| `make lint` | Run golangci-lint |
-| `make fmt` | Format Go source files |
-| `make vet` | Run go vet |
-| `make check` | Run fmt, vet, and test |
-| `make release` | Build binaries for all platforms |
-| `make archives` | Create release archives |
-| `make install` | Install to GOPATH/bin |
-| `make docker` | Build Docker image |
-| `make clean` | Remove build artifacts |
-| `make version` | Display version info |
-
-### Testing
-
-```bash
-# Run all tests
-make test
-
-# Or with Go directly
-go test -v -race ./...
-
-# Generate coverage report
-make coverage
-```
-
-### Running
-
-```bash
-./bin/gps --help
-./bin/gps .
-```
-
-### Releasing
-
-The release process is automated via GitHub Actions:
-
-1. **Create a tag:**
-   ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0"
-   git push origin v1.0.0
-   ```
-
-2. **GitHub Actions will:**
-   - Run tests
-   - Build binaries for Linux, macOS, Windows (amd64, arm64)
-   - Create GitHub release with archives and checksums
-
-**Alternative: Using GoReleaser**
-```bash
-# Install goreleaser: go install github.com/goreleaser/goreleaser/v2@latest
-GITHUB_TOKEN=$(your_token) goreleaser release --clean
-```
-
-### Docker
-
-```bash
-# Build image
-make docker
-
-# Run container
-docker run --rm gps:latest --help
-
-# With volume mount
-docker run --rm -v $(pwd):/data gps:latest /data
-```
+| Feature                | tree | gps |
+|------------------------|------|-----|
+| Basic directory listing| ✅   | ✅  |
+| Depth limit (-L)       | ✅   | ✅  |
+| Exclude patterns (-I)  | ✅   | ✅  |
+| Extension filtering    | ❌   | ✅  |
+| File metadata          | ❌   | ✅  |
+| Line counts            | ❌   | ✅  |
+| Language detection     | ❌   | ✅  |
+| Entry point detection  | ❌   | ✅  |
+| gitignore support      | ❌   | ✅  |
+| Multiple output formats| ❌   | ✅  |
+| Token-optimized output | ❌   | ✅  |
 
 ## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
-
-- Code of conduct
-- Development setup
-- Submitting pull requests
-- Coding standards
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE).
 
 ## Acknowledgments
 
-- Inspired by the classic `tree` command
-- Built with [Cobra](https://github.com/spf13/cobra) CLI framework
-- Configuration powered by [Viper](https://github.com/spf13/viper)
+- Inspired by `tree`
+- Built with [Cobra](https://github.com/spf13/cobra) and [Viper](https://github.com/spf13/viper)
