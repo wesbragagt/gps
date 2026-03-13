@@ -1,4 +1,4 @@
-# gps (go-project-gps)
+# GPS
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/wesbragagt/gps.svg)](https://pkg.go.dev/github.com/wesbragagt/gps)
 [![Go Report Card](https://goreportcard.com/badge/github.com/wesbragagt/gps)](https://goreportcard.com/report/github.com/wesbragagt/gps)
